@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>健康打卡</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f4f4;
+  margin:0;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  max-width:900px;
+  margin:auto;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 2px 12px rgba(0,0,0,.08);
+}
+
+h2{
+  margin-top:0;
+}
+
+input,textarea{
+  width:100%;
+  padding:10px;
+  margin-top:6px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  box-sizing:border-box;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+
+th,td{
+  border:1px solid #ddd;
+  padding:8px;
+  text-align:center;
+}
+
+.summary{
+  background:#f8fafc;
+  border-radius:12px;
+  padding:15px;
+  margin-top:20px;
+}
+
+a{
+  color:#2563eb;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>健康打卡</h2>
+
+<label>体重（kg）</label>
+<input id="weight" type="number">
+
+<label>体脂率（%）</label>
+<input id="bodyfat" type="number" step="0.1">
+
+<label>今日吃了什么</label>
+<textarea id="food"></textarea>
+
+<p>
+热量查询：
+<a
+href="https://www.boohee.com/food/"
+target="_blank">
+薄荷健康食物热量查询
+</a>
+</p>
+
+<label>总热量（kcal）</label>
+<input id="calories" type="number">
+
+<label>椭圆机（分钟）</label>
+<input id="cardio" type="number">
+
+<label>喝水（L）</label>
+<input id="water" type="number">
+
+<label>补剂</label>
+<input id="supplement" type="text">
+
+<button onclick="saveData()">保存今日记录</button>
+
+<div class="summary" id="summary"></div>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>体重</th>
+<th>体脂%</th>
+<th>脂肪kg</th>
+<th>热量</th>
+<th>缺口</th>
+<th>水分</th>
+</tr>
+</thead>
+
+<tbody id="historyTable"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+const age=25
+const gender="A"
+
+function estimateBMR(weight,bodyfat){
+
+  const leanMass=
+    weight-(weight*bodyfat/100)
+
+  return Math.round(
+    370+(21.6*leanMass)
+  )
+}
+
+function saveData(){
+
+  const weight=
+    Number(document.getElementById("weight").value)
+
+  const bodyfat=
+    Number(document.getElementById("bodyfat").value)
+
+  const calories=
+    Number(document.getElementById("calories").value)
+
+  const cardio=
+    Number(document.getElementById("cardio").value)
+
+  const water=
+    Number(document.getElementById("water").value)
+
+  const food=
+    document.getElementById("food").value
+
+  const supplement=
+    document.getElementById("supplement").value
+
+  const bmr=
+    estimateBMR(weight,bodyfat)
+
+  const cardioBurn=
+    cardio*8
+
+  const tdee=
+    bmr+cardioBurn+400
+
+  const deficit=
+    tdee-calories
+
+  const fatLoss=
+    (deficit/7700).toFixed(2)
+
+  const waterChange=
+    (water-2).toFixed(1)
+
+  const fatMass=
+    (
+      weight*bodyfat/100
+    ).toFixed(1)
+
+  const leanMass=
+    (
+      weight-fatMass
+    ).toFixed(1)
+
+  const data={
+    date:new Date().toLocaleDateString(),
+    weight,
+    bodyfat,
+    fatMass,
+    leanMass,
+    food,
+    calories,
+    cardio,
+    water,
+    supplement,
+    bmr,
+    deficit,
+    fatLoss,
+    waterChange
+  }
+
+  let logs=
+    JSON.parse(
+      localStorage.getItem("healthLogs")
+    ) || []
+
+  logs.unshift(data)
+
+  localStorage.setItem(
+    "healthLogs",
+    JSON.stringify(logs)
+  )
+
+  renderLogs()
+}
+
+function renderLogs(){
+
+  let logs=
+    JSON.parse(
+      localStorage.getItem("healthLogs")
+    ) || []
+
+  const table=
+    document.getElementById(
+      "historyTable"
+    )
+
+  table.innerHTML=""
+
+  logs.forEach(item=>{
+
+    table.innerHTML+=`
+
+<tr>
+<td>${item.date}</td>
+<td>${item.weight}</td>
+<td>${item.bodyfat}</td>
+<td>${item.fatMass}</td>
+<td>${item.calories}</td>
+<td>${item.deficit}</td>
+<td>${item.waterChange}</td>
+</tr>
+
+`
+  })
+
+  if(logs.length){
+
+    const latest=logs[0]
+
+    document.getElementById(
+      "summary"
+    ).innerHTML=
+
+`
+<b>当前体重：</b>${latest.weight} kg<br>
+
+<b>体脂率：</b>${latest.bodyfat}%<br>
+
+<b>脂肪重量：</b>${latest.fatMass} kg<br>
+
+<b>瘦体重：</b>${latest.leanMass} kg<br>
+
+<b>基础代谢：</b>${latest.bmr} kcal<br>
+
+<b>今日摄入：</b>${latest.calories} kcal<br>
+
+<b>热量缺口：</b>${latest.deficit} kcal<br>
+
+<b>理论脂肪变化：</b>${latest.fatLoss} kg<br>
+
+<b>推测水分变化：</b>${latest.waterChange} L<br>
+
+<b>今日饮食：</b>${latest.food}<br>
+
+<b>补剂：</b>${latest.supplement}
+`
+  }
+}
+
+renderLogs()
+
+</script>
+
+</body>
+</html>
