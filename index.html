@@ -1,50 +1,67 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
-  <title>健康打卡</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>健康打卡</title>
 
-  <style>
-    body{
-      font-family:Arial;
-      margin:0;
-      padding:20px;
-      background:#f4f4f4;
-    }
+<style>
+body{
+  font-family:Arial;
+  background:#f4f4f4;
+  margin:0;
+  padding:20px;
+}
 
-    .card{
-      background:white;
-      border-radius:12px;
-      padding:20px;
-      max-width:420px;
-      margin:auto;
-      box-shadow:0 2px 10px rgba(0,0,0,.08);
-    }
+.card{
+  background:white;
+  max-width:980px;
+  margin:auto;
+  padding:20px;
+  border-radius:14px;
+}
 
-    input{
-      width:100%;
-      padding:10px;
-      margin-top:8px;
-      margin-bottom:12px;
-      border-radius:8px;
-      border:1px solid #ddd;
-      box-sizing:border-box;
-    }
+input,textarea,select{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #ddd;
+  box-sizing:border-box;
+}
 
-    button{
-      width:100%;
-      padding:12px;
-      border:none;
-      border-radius:10px;
-      background:#2563eb;
-      color:white;
-      font-size:16px;
-    }
-  </style>
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#2563eb;
+  color:white;
+  font-size:16px;
+}
+
+.summary{
+  background:#f8fafc;
+  padding:14px;
+  border-radius:10px;
+  margin-top:18px;
+  line-height:1.8;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  font-size:14px;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid #eee;
+  text-align:center;
+}
+</style>
 </head>
 
 <body>
@@ -56,39 +73,257 @@
 <label>体重（kg）</label>
 <input id="weight" type="number">
 
-<label>今日椭圆机（分钟）</label>
+<label>今天类型</label>
+<select id="dayType">
+  <option value="work">上班日</option>
+  <option value="rest">休息日</option>
+</select>
+
+<label>椭圆机（分钟）</label>
 <input id="cardio" type="number">
 
 <label>喝水（L）</label>
 <input id="water" type="number">
 
+<label>今天吃了什么</label>
+<textarea id="food"></textarea>
+
+<label>
+<input id="vitamin" type="checkbox">
+复合维生素
+</label>
+
+<label>
+<input id="fishoil" type="checkbox">
+鱼油
+</label>
+
 <button onclick="saveData()">
-保存
+保存今日记录
 </button>
 
-<p id="msg"></p>
+<div class="summary" id="summary">
+暂无记录
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>日期</th>
+<th>体重</th>
+<th>热量</th>
+<th>缺口</th>
+<th>脂肪</th>
+<th>水分</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
 
 </div>
 
 <script>
+
+const age=25
+const height=181
+
+function getLogs(){
+  return JSON.parse(
+    localStorage.getItem("healthLogs") || "[]"
+  )
+}
+
+function calcCalories(food){
+
+  let kcal=0
+
+  if(food.includes("麦片")) kcal+=115
+  if(food.includes("牛奶")) kcal+=120
+  if(food.includes("乳清")) kcal+=120
+  if(food.includes("三明治")) kcal+=700
+  if(food.includes("鸡胸")) kcal+=165
+  if(food.includes("芒果")) kcal+=130
+
+  const lychee=(food.match(/荔枝/g)||[]).length
+  kcal += lychee*6
+
+  return kcal
+}
+
+function calcProtein(food){
+
+  let p=0
+
+  if(food.includes("乳清")) p+=24
+  if(food.includes("鸡胸")) p+=31
+  if(food.includes("牛奶")) p+=8
+  if(food.includes("三明治")) p+=30
+  if(food.includes("麦片")) p+=4
+
+  return p
+}
+
+function calcBMR(weight){
+
+  return Math.round(
+    10*weight +
+    6.25*height -
+    5*age +
+    5
+  )
+}
+
 function saveData(){
 
-  const data={
-    weight:document.getElementById("weight").value,
-    cardio:document.getElementById("cardio").value,
-    water:document.getElementById("water").value,
-    date:new Date().toLocaleDateString()
+  const weight=
+    Number(document.getElementById("weight").value)
+
+  if(!weight) return
+
+  const food=
+    document.getElementById("food").value
+
+  const cardio=
+    Number(document.getElementById("cardio").value||0)
+
+  const water=
+    document.getElementById("water").value
+
+  const dayType=
+    document.getElementById("dayType").value
+
+  const activity=
+    dayType==="work" ? 1.55 : 1.35
+
+  const bmr=
+    calcBMR(weight)
+
+  const cardioBurn=
+    cardio*8
+
+  const tdee=
+    Math.round(
+      bmr*activity + cardioBurn
+    )
+
+  const calories=
+    calcCalories(food)
+
+  const deficit=
+    tdee-calories
+
+  const fatLoss=
+    (deficit/7700).toFixed(2)
+
+  const protein=
+    calcProtein(food)
+
+  const logs=getLogs()
+
+  let waterChange="-"
+
+  if(logs.length){
+
+    const diff=
+      (
+        logs[0].weight - weight
+      ).toFixed(2)
+
+    waterChange=
+      (
+        diff - fatLoss
+      ).toFixed(2)
   }
 
+  logs.unshift({
+
+    date:
+      new Date().toLocaleDateString(),
+
+    weight,
+    calories,
+    deficit,
+    fatLoss,
+    waterChange,
+    protein,
+    water,
+
+    vitamin:
+      document.getElementById("vitamin").checked,
+
+    fishoil:
+      document.getElementById("fishoil").checked
+  })
+
   localStorage.setItem(
-    "healthLog",
-    JSON.stringify(data)
+    "healthLogs",
+    JSON.stringify(logs)
   )
 
-  document.getElementById("msg").innerText=
-    "已保存：" + data.date
+  render()
 }
+
+function render(){
+
+  const logs=getLogs()
+
+  const body=
+    document.getElementById("tableBody")
+
+  body.innerHTML=""
+
+  logs.forEach(item=>{
+
+    body.innerHTML += `
+      <tr>
+        <td>${item.date}</td>
+        <td>${item.weight}</td>
+        <td>${item.calories}</td>
+        <td>${item.deficit}</td>
+        <td>${item.fatLoss}kg</td>
+        <td>${item.waterChange}</td>
+      </tr>
+    `
+  })
+
+  if(logs.length){
+
+    const latest=logs[0]
+
+    document.getElementById("summary")
+      .innerHTML=
+      `
+      当前体重：
+      ${latest.weight} kg<br>
+
+      今日摄入：
+      ${latest.calories} kcal<br>
+
+      热量缺口：
+      ${latest.deficit} kcal<br>
+
+      理论脂肪变化：
+      ${latest.fatLoss} kg<br>
+
+      推测水分变化：
+      ${latest.waterChange} kg<br>
+
+      蛋白质：
+      ${latest.protein} g<br>
+
+      喝水：
+      ${latest.water} L
+      `
+  }
+}
+
+render()
+
 </script>
 
 </body>
+</html>
 </html>
