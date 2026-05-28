@@ -1,16 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1"
-    />
-    <title>健康打卡</title>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+  <title>健康打卡</title>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <style>
+    body{
+      font-family:Arial;
+      margin:0;
+      padding:20px;
+      background:#f4f4f4;
+    }
+
+    .card{
+      background:white;
+      border-radius:12px;
+      padding:20px;
+      max-width:420px;
+      margin:auto;
+      box-shadow:0 2px 10px rgba(0,0,0,.08);
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin-top:8px;
+      margin-bottom:12px;
+      border-radius:8px;
+      border:1px solid #ddd;
+      box-sizing:border-box;
+    }
+
+    button{
+      width:100%;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      background:#2563eb;
+      color:white;
+      font-size:16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>健康打卡</h2>
+
+<label>体重（kg）</label>
+<input id="weight" type="number">
+
+<label>今日椭圆机（分钟）</label>
+<input id="cardio" type="number">
+
+<label>喝水（L）</label>
+<input id="water" type="number">
+
+<button onclick="saveData()">
+保存
+</button>
+
+<p id="msg"></p>
+
+</div>
+
+<script>
+function saveData(){
+
+  const data={
+    weight:document.getElementById("weight").value,
+    cardio:document.getElementById("cardio").value,
+    water:document.getElementById("water").value,
+    date:new Date().toLocaleDateString()
+  }
+
+  localStorage.setItem(
+    "healthLog",
+    JSON.stringify(data)
+  )
+
+  document.getElementById("msg").innerText=
+    "已保存：" + data.date
+}
+</script>
+
+</body>
 </html>
